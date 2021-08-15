@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>synthesizers</name>
+  <version>0.0.0</version>
+  <description>The package used to generate virtual sensor data.</description>
+  <maintainer email="venbo12@gmail.com">yjchoi</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>pcl_ros</depend>
+  <export>
+  </export>
+  
+</package>
