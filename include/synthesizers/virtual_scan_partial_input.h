@@ -37,136 +37,98 @@
  *
  */
 
-#ifndef _PCL_VIRTUAL_SCAN_H_
-#define _PCL_VIRTUAL_SCAN_H_
+#ifndef _PCL_VIRTUAL_SCAN_PARTIAL_INPUT_H_
+#define _PCL_VIRTUAL_SCAN_PARTIAL_INPUT_H_
 
-#include <synthesizers/synthesizer.h>
-#include <pcl/common/transforms.h>
-#include <pcl/octree/octree_search.h>
+#include <synthesizers/virtual_scan.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 namespace pcl
 {
   template <typename PointT>
-  class VirtualScan : public Synthesizer<PointT>
+  class VirtualScanPartialInput : public VirtualScan<PointT>
   {
     protected:
-      using Synthesizer<PointT>::synthesizer_name_;
-      using Synthesizer<PointT>::getClassName;
-      using Synthesizer<PointT>::input_;
-      using Synthesizer<PointT>::indices_;
 
-      typedef typename Synthesizer<PointT>::PointCloud PointCloud;
+      using VirtualScan<PointT>::synthesizer_name_;
+      using VirtualScan<PointT>::getClassName;
+      using VirtualScan<PointT>::indices_;
+      using VirtualScan<PointT>::input_;
+
+      using VirtualScan<PointT>::lidar_config_;
+      using VirtualScan<PointT>::vehicle_config_;
+      using VirtualScan<PointT>::resolution_;
+      using VirtualScan<PointT>::correct_distortion_;
+      using VirtualScan<PointT>::in_map_frame_;
+
+      typedef typename VirtualScan<PointT>::PointCloud PointCloud;
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
-      typedef boost::shared_ptr< VirtualScan<PointT> > Ptr;
-      typedef boost::shared_ptr< const VirtualScan<PointT> > ConstPtr;
-
-      typedef typename pcl::octree::OctreePointCloudSearch<PointT> OctreeT;
+      typedef typename VirtualScan<PointT>::OctreeT OctreeT;
 
     public:
+    
+      typedef typename VirtualScan<PointT>::VehicleConfig VehicleConfig;
+      typedef typename VirtualScan<PointT>::LidarConfig LidarConfig;
 
-      struct LidarConfig
+      /** \brief constructor. */
+      VirtualScanPartialInput () :
+        curr_seq_ (0)
       {
-        LidarConfig() : 
-          num_channels (64), 
-          hertz (10.0), 
-          num_azimuth (1024), 
-          start_azimuth (0),
-          max_altitude (16.6), 
-          range (120.0), 
-          mount_position (0.0, 0.0, 0.0),
-          mount_orientation (0.0, 0.0, 0.0),
-          used_all_beams (true)
+        synthesizer_name_ = "VirtualScanPartialInput";
+      
+        partial_inputs_.clear ();
+        collision_counts_per_input_.clear ();
+        ids_each_point_.clear ();
+      }
+
+      inline virtual void
+      setInputCloud (const PointCloudConstPtr &cloud)
+      {
+        PCL_WARN ("[pcl::VirtualScanPartialInput] The setInputCloud funtion can't be used in this class. Instead, use the addPartialInputCloud funtion.\n");
+      }
+
+      inline virtual void 
+      addPartialInputCloud (const PointCloudPtr &partial_input)
+      {
+        partial_inputs_.push_back(partial_input);
+        collision_counts_per_input_.push_back(0);
+        for (int i = 0; i < partial_input->size(); i++)
         {
+          ids_each_point_.push_back(curr_seq_);
         }
 
-        int num_channels;
-
-        double hertz;
-
-        int num_azimuth;
-
-        int start_azimuth;
-
-        double max_altitude;
-
-        double range;
-
-        Eigen::Vector3d mount_position;
-
-        Eigen::Vector3d mount_orientation;
-
-        bool used_all_beams;
-      };
-
-        // vehicle configuration
-      struct VehicleConfig
-      {
-        VehicleConfig() : 
-          velocity(0.0), 
-          position(0.0, 0.0, 0.0), 
-          orientation(0.0, 0.0, 0.0)
-        {
-        }
-
-        double velocity; // km/h
-        
-        Eigen::Vector3d position;
-
-        Eigen::Vector3d orientation;
-      };
-
-
-      /** \brief Empty constructor. */
-      VirtualScan () : 
-        resolution_ (0.1),
-        correct_distortion_ (false),
-        in_map_frame_ (false)
-      {
-        synthesizer_name_ = "VirtualScan";
+        curr_seq_++;
       }
 
-      /** \brief Destructor. */
-      virtual ~VirtualScan ()
+      inline void
+      getFinalCollisionCountsPerInput(std::vector<int> &output)
       {
+        output = collision_counts_per_input_;
       }
 
-      inline void 
-      setVehicleConfig (const VehicleConfig &config)
+      inline std::vector<int>
+      getFinalCollisionCountsPerInput()
       {
-        vehicle_config_ = config;
+        return (collision_counts_per_input_);
       }
 
-      inline void 
-      setLidarConfig (const LidarConfig &config)
+      inline void
+      synthesize (PointCloud &output)
       {
-        lidar_config_ = config;
-      }
-
-      inline void 
-      setResolution (float resolution) 
-      { 
-        resolution_ = resolution;
-      }
-
-      inline void 
-      setCorrectDistortion (bool correct_distortion) 
-      { 
-        correct_distortion_ = correct_distortion;
+        applySynthesizer(output);
       }
 
     protected:
 
-      LidarConfig lidar_config_;
+      int curr_seq_;
 
-      VehicleConfig vehicle_config_;
+      std::vector<PointCloudPtr> partial_inputs_;
 
-      float resolution_;
+      std::vector<int> collision_counts_per_input_;
 
-      bool correct_distortion_;
-
-      bool in_map_frame_;
-
+      std::vector<int> ids_each_point_; // The ids of points
+    
       void
       applySynthesizer (PointCloud &output);
 
@@ -186,6 +148,6 @@ namespace pcl
 
 } // namespace pcl
 
-#include <synthesizers/impl/virtual_scan.hpp>
+#include <synthesizers/impl/virtual_scan_partial_input.hpp>
 
-#endif // _PCL_VIRTUAL_SCAN_H_
+#endif // _PCL_VIRTUAL_SCAN_PARTIAL_INPUT_H_
