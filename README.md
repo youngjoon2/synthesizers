@@ -1,2 +1,2 @@
 # synthesizers
-The package used for generating virtual sensor data.
+The library package used for generating virtual sensor data.
